@@ -1,0 +1,9 @@
+# Import all models here so that Base.metadata is aware of them.
+# This file is imported by init_db.py (and later by Alembic's env.py)
+# purely for its side effects.
+
+from app.db.base_class import Base  # noqa
+from app.models.item import Item  # noqa
+{% if auth -%}
+from app.models.user import User  # noqa
+{% endif -%}

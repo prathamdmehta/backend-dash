@@ -1,0 +1,49 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """
+    Central app configuration. Values are read from environment
+    variables / a .env file, falling back to the defaults below.
+    """
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    PROJECT_NAME: str = "{{ project_name }}"
+    API_V1_PREFIX: str = "/api/v1"
+{% if db == "postgres" %}
+    # Postgres — override via .env once you have real credentials.
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/{{ project_slug }}"
+
+    # Schema is managed by Alembic migrations, not create_all.
+    # Run `alembic upgrade head` before starting the app.
+    USE_MIGRATIONS: bool = True
+{% elif db == "mysql" %}
+    # MySQL — override via .env once you have real credentials.
+    DATABASE_URL: str = "mysql+pymysql://root:root@localhost:3306/{{ project_slug }}"
+
+    # Schema is managed by Alembic migrations, not create_all.
+    # Run `alembic upgrade head` before starting the app.
+    USE_MIGRATIONS: bool = True
+{% else %}
+    # SQLite by default so the project runs with zero external setup.
+    # Regenerate with --db=postgres or --db=mysql for a real database.
+    DATABASE_URL: str = "sqlite:///./app.db"
+    USE_MIGRATIONS: bool = False
+{% endif %}
+    DEBUG: bool = True
+{% if auth %}
+    # --- Auth (JWT) ---
+    # IMPORTANT: override SECRET_KEY via .env in any real deployment.
+    # This default is only safe for local development.
+    SECRET_KEY: str = "dev-secret-change-me-this-is-not-secure-32chars"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # --- Google OAuth ---
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://127.0.0.1:8000/api/v1/auth/google/callback"
+{% endif %}
+
+settings = Settings()

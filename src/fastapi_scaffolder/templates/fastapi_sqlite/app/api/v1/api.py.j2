@@ -1,0 +1,14 @@
+from fastapi import APIRouter
+
+from app.api.v1 import routes_item
+{% if auth -%}
+from app.api.v1 import routes_auth
+{% endif %}
+api_router = APIRouter()
+api_router.include_router(routes_item.router)
+{% if auth -%}
+api_router.include_router(routes_auth.router)
+{% endif %}
+# Add future route modules here, e.g.:
+# from app.api.v1 import routes_user
+# api_router.include_router(routes_user.router)

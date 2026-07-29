@@ -1,0 +1,44 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+from app.api.v1.api import api_router
+from app.core.config import settings
+from app.core.exceptions import AppException
+from app.db.init_db import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Creates tables on startup — skipped when USE_MIGRATIONS is True,
+    # since that means Alembic (`alembic upgrade head`) owns the schema.
+    if not settings.USE_MIGRATIONS:
+        init_db()
+    yield
+
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    """
+    Every AppException subclass (NotFoundException, UnauthorizedException,
+    ConflictException, ...) is caught here, so every error response in
+    the app has the same shape: {"error_code": ..., "detail": ...}.
+    Routes and services should raise these instead of HTTPException
+    directly wherever business-logic errors occur.
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error_code": exc.error_code, "detail": exc.detail},
+    )
+
+
+@app.get("/", tags=["health"])
+def health_check():
+    return {"status": "ok", "project": settings.PROJECT_NAME}
+
+
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
